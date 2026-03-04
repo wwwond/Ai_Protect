@@ -1,0 +1,44 @@
+# ====================== Packetbeat Configuration (최종 해결안) =======================
+
+# Packetbeat가 감시할 네트워크 인터페이스를 지정합니다.
+# 'any'는 설치 시점에 main_installer.py가 올바른 장치 번호로 교체합니다.
+packetbeat.interfaces.device: any
+
+# 감시할 프로토콜을 지정합니다.
+packetbeat.protocols:
+- type: http
+  ports: [80, 8080, 8000, 5000]
+- type: tls
+  ports: [443]
+- type: dns
+  ports: [53]
+
+# 모든 네트워크 연결(Flow)의 메타데이터를 수집하도록 설정합니다.
+packetbeat.flows:
+  enabled: true
+  timeout: 5s
+  period: 1s
+
+# =========================================================================
+# 데이터 처리 파이프라인 (Processors)
+# =========================================================================
+processors:
+  # add_fields 프로세서를 사용하여, Packetbeat이 보내는 모든 종류의 이벤트에
+  # 예외 없이 아래 필드들을 강제로 추가합니다.
+  - add_fields:
+      # target: '' 설정은 필드를 이벤트의 최상위 레벨에 추가하라는 의미입니다.
+      target: ''
+      fields:
+        user_id: "NEEDS_REPLACEMENT"
+        event_source: "packetbeat"
+  # ==============================================================================
+
+# ================================= Kafka Output =================================
+output.kafka:
+  enabled: true
+  hosts: ["210.119.12.96:9092"]
+  topic: 'packetbeat-traffic'
+  flush.frequency: 1s
+  bulk_max_size: 2048
+  codec.json:
+    pretty: false

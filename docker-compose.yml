@@ -1,0 +1,167 @@
+# ===========================================================
+# Docker Compose v3.8
+# AI Network Attack Detection System (Full Stack)
+# ===========================================================
+
+# -----------------------------------------------------------
+# 1. 사용자 정의 네트워크 정의
+# -----------------------------------------------------------
+# 모든 서비스들이 서로 통신할 수 있도록 격리된 가상 네트워크를 생성합니다.
+networks:
+  my_detection_network:
+    driver: bridge
+
+# -----------------------------------------------------------
+# 2. 영속성 볼륨 정의
+# -----------------------------------------------------------
+# 컨테이너가 삭제되어도 데이터가 보존되도록 Docker가 관리하는 저장 공간을 미리 정의합니다.
+
+volumes:
+  elasticsearch_data:
+  kafka_data:
+  zookeeper_data:
+  zookeeper_log:
+  postgres_data:
+  redis_data:
+# -----------------------------------------------------------
+# 3. 서비스(컨테이너) 정의
+# -----------------------------------------------------------
+services:
+
+  # Zookeeper: Kafka 클러스터의 메타데이터 관리
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
+    container_name: zookeeper
+    networks:
+      - my_detection_network
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+
+  # Kafka: 고성능 분산 메시지 큐 시스템
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    networks:
+      - my_detection_network
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9093,EXTERNAL://210.119.12.96:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  # Elasticsearch: 로그 및 이벤트 저장, 검색, 분석 엔진
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - my_detection_network
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms4g -Xmx4g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\\|yellow\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kibana: Elasticsearch 데이터 시각화 및 대시보드
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - my_detection_network
+    environment:
+      ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
+
+  # --- 데이터베이스 및 캐시 서비스 추가 ---
+  
+  # PostgreSQL: 관계형 데이터베이스
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      # ⚠️ 중요: 이 값들은 .env 파일에서 읽어오는 것이 안전합니다.
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - my_detection_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis: 인메모리 캐시/메시지 브로커
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    networks:
+      - my_detection_network
+
+  # --- 애플리케이션 서비스 ---
+
+  # Backend: FastAPI 백엔드 서버
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend_app
+    ports:
+      - "8000:8000"
+    # 모든 서비스가 준비된 후 백엔드가 실행되도록 설정
+    depends_on:
+      kafka:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy # DB healthcheck와 연동
+      redis:
+        condition: service_started
+    networks:
+      - my_detection_network
+    env_file:
+      - ./backend/.env
+    environment:
+    #   DEBUG: "False"
+    #   KAFKA_BOOTSTRAP_SERVERS: 'kafka:9092'
+      ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
+    #   KAFKA_TOPIC_WINLOG: "winlogbeat-logs"
+    #   KAFKA_TOPIC_PACKETBEAT: "packetbeat-traffic"
+    # DATABASE_URL: "postgresql+asyncpg://myuser:mypassword@postgres_db:5432/mydatabase"
+    # REDIS_URL: "redis://redis:6379/0"
+    command: gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000

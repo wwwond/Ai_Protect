@@ -1,0 +1,110 @@
+# ===============================================================
+# Web Framework & ASGI Server
+# ===============================================================
+fastapi==0.110.0
+uvicorn[standard]==0.27.1
+websockets==12.0
+click==8.1.3 # uvicorn의 의존성으로 버전 명시
+gunicorn==21.2.0
+
+# ===============================================================
+# Data Validation & Settings
+# ===============================================================
+pydantic==2.6.4
+pydantic-settings==2.2.1
+typing-extensions # 의존성 충돌 방지
+
+# ===============================================================
+# Database & Asynchronous Clients
+# ===============================================================
+# --- Elasticsearch ---
+elasticsearch==8.10.0
+aiohttp==3.9.3
+
+# --- Kafka ---
+# confluent-kafka==2.4.0 # 안정적인 최신 버전
+aiokafka==0.8.0
+kafka-python==2.0.2
+
+# --- PostgreSQL ---
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+
+# --- Redis ---
+redis==5.0.7
+
+# ---asyncpg---
+# asyncpg는 PostgreSQL과 비동기적으로 상호작용하기 위한 라이브러리입니다.
+asyncpg==0.29.0
+
+# ===============================================================
+# AI / Machine Learning & Data Processing
+# ===============================================================
+# scikit-learn 1.3.2 와 호환되는 numpy, pandas 버전으로 통일
+# numpy==1.26.4
+pandas==2.1.4
+scikit-learn==1.3.2
+imbalanced-learn==0.12.3
+# TensorFlow는 CPU 버전을 기본으로 명시
+tensorflow==2.15.0
+numpy==1.26.4
+xgboost==1.7.6
+catboost==1.2.8
+lightgbm==4.6.0
+matplotlib==3.8.4
+joblib==1.4.2
+seaborn
+
+# ===============================================================
+# LangChain & LLM Ecosystem
+# ===============================================================
+# === 1. Pydantic (가장 기본적인 의존성) ===
+pydantic[email]==2.6.4
+
+# === 2. LangChain 핵심 패키지 (버전 통일) ===
+langchain==0.2.6
+langchain-community==0.2.6
+langchain-core==0.2.38
+langsmith<0.2.0
+langchain-experimental==0.0.62
+langchain-text-splitters==0.2.4
+
+# === 3. LangChain 연동 라이브러리 ===
+langchain-ollama==0.1.3
+ollama==0.3.0
+langchain-chroma==0.1.2
+langchain-huggingface==0.0.3
+
+# === 4. 데이터베이스 및 임베딩 ---
+chromadb==0.5.0
+sentence-transformers==2.7.0
+# torch 버전을 2.6 이상으로 상향하여 보안 문제 해결
+torch>=2.6.0
+torchvision
+torchaudio
+
+# === 5. 기타 유틸리티 ===
+tavily-python==0.3.3
+pypdf==4.2.0
+aiosmtplib==3.0.1
+
+# ===============================================================
+# Utilities
+# ===============================================================
+python-dotenv==1.0.1
+aiofiles==23.2.1
+apscheduler==3.10.4
+# pywin32==306 # Windows API 사용
+python-jose[cryptography]==3.3.0 # 보안/인증
+passlib[bcrypt] # 비밀번호 해싱
+requests==2.32.3 # HTTP 요청
+coolsms-python-sdk==2.0.3 # SMS 발송
+
+# ===============================================================
+# Jupyter Notebook Environment (Optional)
+# ===============================================================
+# 주피터 환경에서 개발 시에만 설치하세요.
+# jupyterlab==4.2.3
+# ipykernel==6.29.5
+
+

@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400..900&display=swap');
+@import "tailwindcss";
+
+* {
+  font-family: "Maven Pro", sans-serif;
+}
+
+@theme {
+  --color-primary : #E3F2FD;
+  --color-primary-dull : #B9CDFF;
+}
+
+:focus-visible {
+  outline: none;
+}
+.recharts-wrapper *:focus {
+  outline: none !important;
+}

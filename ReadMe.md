@@ -60,6 +60,7 @@ XGBoost 모델로 10개 MITRE ATT&CK 공격 기법을 분류하는 통합 보안
 ## 5. 기술 스택
 
 | 분류 | 기술 |
+|------|------|
 | Backend | FastAPI, Python, asyncio |
 | ML | XGBoost, LightGBM, CatBoost, Scikit-learn |
 | Data Pipeline | Kafka, Winlogbeat, Packetbeat, Sysmon |
